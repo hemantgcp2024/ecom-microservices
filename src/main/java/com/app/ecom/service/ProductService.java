@@ -7,7 +7,9 @@ import com.app.ecom.repositories.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,10 +20,10 @@ public class ProductService {
         Product product = new Product();
         updateProductFromRequest(product, productRequest);
        Product savedProduct= productRepository.save(product);
-         return mapToResponse(savedProduct);
+         return mapToProductResponse(savedProduct);
     }
 
-    private ProductResponse mapToResponse(Product savedProduct) {
+    private ProductResponse mapToProductResponse(Product savedProduct) {
         ProductResponse productResponse = new ProductResponse();
         productResponse.setId(savedProduct.getId());
         productResponse.setName(savedProduct.getName());
@@ -49,7 +51,29 @@ public class ProductService {
                 .map(existingProduct ->{
                     updateProductFromRequest(existingProduct, productRequest);
                     Product saveProduct = productRepository.save(existingProduct);
-                    return mapToResponse(saveProduct);
+                    return mapToProductResponse(saveProduct);
                 });
+    }
+
+    public List<ProductResponse> getAllProducts() {
+        return productRepository.findByActiveTrue().stream()
+                .map(this::mapToProductResponse)
+                .collect(Collectors.toList());
+    }
+
+    public boolean deleteProduct(Long id) {
+        return productRepository.findById(id)
+                .map(product -> {
+                    product.setActive(false);
+                    productRepository.save(product);
+                    return true;
+                }).orElse(false);
+
+    }
+
+    public List<ProductResponse> searchProducts(String keyword) {
+        return productRepository.searchProducts(keyword).stream()
+                .map(this::mapToProductResponse)
+                .collect(Collectors.toList());
     }
 }
